@@ -73,18 +73,18 @@ def get_mnist_data_binary(c1: int, c2: int) -> Tuple[DataLoader, int, DataLoader
 
 
 def linear(w: Tensor, b: Tensor, x: Tensor) -> Tensor:
-    # TODO: implement the linear part of a neuron: z = w^T x + b
-    return None
+    # implement the linear part of a neuron: z = w^T x + b
+    return w.T @ x + b
 
 
 def sigmoid(z: Tensor) -> Tensor:
-    # TODO: implement the sigmoid activation function: σ(z) = 1 / (1 + e^-z)
-    return None
+    # implement the sigmoid activation function: σ(z) = 1 / (1 + e^-z)
+    return 1 / (1 + torch.exp(-z))
 
 
 def binary_cross_entropy_loss(preds: Tensor, targs: Tensor) -> Tensor:
-    # TODO: implement binary cross entropy loss: ylog(yhat) + (1-y)log(1-yhat)
-    return None
+    # implement binary cross entropy loss: ylog(yhat) + (1-y)log(1-yhat)
+    return targs * torch.log(preds) + (1 - targs) * torch.log(1 - preds)
 
 
 def target_to_sigmoid(target: Tensor, c1: int) -> Tensor:
