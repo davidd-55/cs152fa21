@@ -13,63 +13,12 @@
 #     name: python3
 # ---
 
-# %% [markdown]
-# # Batch Gradient Descent With a Single Neuron
-#
-# *Tue Sep 14, Week 3, Lecture 5*
-#
-# ## Why Python and why Jupyter Notebooks?
-#
-# - Python is not an ideal langauge for this
-# - Jupyter is not an ideal environment for htis
-# - They are, however, in my opinion the **best** we have 
-#
-# ## Notes
-#
-# - In this example, I am not going to do fancy imports
-# - I want you to see the layout of torch and torchvision
-
 # %%
 import torch
 import torchvision
-import pandas as pd
+import matplotlib.pyplot as plt
 
-# %%
-torch.rand(5)
-
-# %%
-torch.rand(5).shape
-
-# %%
-torch.rand(5, 25)
-
-# %%
-torch.rand(5, 25).shape
-
-# %%
-X = torch.rand(5, 12)
-Y = torch.rand(12, 16)
-
-# %%
-X.shape, Y.shape
-
-# %%
-X
-
-# %%
-X @ Y
-
-# %%
-Z = X @ Y
-
-# %%
-X.shape, Y.shape
-
-# %%
-Z.shape
-
-# %%
-Y @ Z
+from time import time
 
 # %%
 # MNIST : hello world
@@ -91,105 +40,31 @@ train_dataset = torchvision.datasets.MNIST(
 )
 
 # %%
-# batch_size, shuffle
 train_loader = torch.utils.data.DataLoader(train_dataset)
 
 # %%
-image, label = next(iter(train_loader))
-
-# %%
-image.shape
-
-# %%
-label.shape, label
-
-# %%
-image
-
-# %%
-mnist_avg, mnist_std = 0.130, 0.3081
-
-image = torch.as_tensor((image * mnist_std + mnist_avg) * 255, dtype=torch.uint8)
-image
-
-# %%
-image_df = pd.DataFrame(image.squeeze().numpy())
-image_df
-
-# %%
-image_df.style.set_properties(**{'font-size':'6pt'}).background_gradient('Greys')
-
-# %%
-import matplotlib.pyplot as plt
-
-# %%
-num_to_show = 8
-
-fig, axes = plt.subplots(1, num_to_show, figsize=(12, 12))
-
-for axis, (image, label) in zip(axes, train_loader):
-    axis.imshow(image.squeeze(), cmap="Greys")
-    axis.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
-    axis.set_title(f"Label: {label[0]}")
-
-# %% [markdown]
-# # A Single Neuron Model
-
-# %%
-# Simple single neuron model; sometimes called logistic regression
-
 num_pixels = 28 * 28
 
-# Neuron parameters
-weights = torch.randn(num_pixels, 1) * 0.01
-bias = torch.zeros(1)
+w = torch.randn(num_pixels, 1)
+b = torch.randn(1)
 
 # %%
-weights.shape, bias.shape, image[0].shape, image[0].view(num_pixels, 1).shape
+x, y = next(iter(train_loader))
+
+z = w.T @ x.view(num_pixels, 1) + b
+a = torch.sigmoid(z)
+
+yhat = a
+yhat
 
 # %%
-x = image[0]
-
-# %%
-weights @ x
-
-# %%
-x = image[0].view(num_pixels, 1)
-
-# %%
-weights @ x
-
-# %%
-weights.T @ x
-
-# %%
-# from torch import FloatTensor, FloatType
-
-
-def linear(w, b, x):
-    return w.T @ x + b
-
-
-# %%
-linear(weights, bias, x)
-
-
-# %%
-def sigmoid(z):
-    return 1 / (1 + torch.exp(-z))
-
-
-# %%
-sigmoid(linear(weights, bias, x))
-
-# %% [markdown]
-# # Let's Focus on Binary Classification
+loss = (yhat - y)**2
 
 # %%
 # Get down to two classes (let them pick)
 
-class1 = 7
-class2 = 1
+class1 = 4
+class2 = 7
 
 idx1 = [i for i, t in enumerate(train_dataset.targets) if t == class1]
 idx2 = [i for i, t in enumerate(train_dataset.targets) if t == class2]
@@ -202,6 +77,9 @@ train_loader2 = torch.utils.data.DataLoader(
 )
 
 # %%
+train_size
+
+# %%
 num_to_show = 8
 
 fig, axes = plt.subplots(1, num_to_show, figsize=(12, 12))
@@ -210,12 +88,6 @@ for axis, (image, label) in zip(axes, train_loader2):
     axis.imshow(image.squeeze(), cmap="Greys")
     axis.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
     axis.set_title(f"Label: {label[0]}")
-
-# %% [markdown]
-# # Using Our Derived Equations
-
-# %%
-from time import time
 
 # %%
 # Optimization, binary cross-entropy loss (Log loss, aka logistic loss or cross-entropy loss)
@@ -251,7 +123,8 @@ for epoch in range(num_epochs):
         image = image.view(num_pixels, 1)
         target = target_to_sigmoid(target)
 
-        prediction = sigmoid(linear(weights, bias, image))
+        #prediction = sigmoid(linear(weights, bias, image))
+        prediction = torch.sigmoid(weights.T @ image + bias)
 
         loss = target * torch.log(prediction) + (1 - target) * torch.log(1 - prediction)
         cost -= loss
@@ -270,8 +143,17 @@ for epoch in range(num_epochs):
         f"{epoch+1:>2}/{num_epochs}, Cost={cost[0][0]:0.1f}, Time={time()-start:0.1f}s"
     )
 
-# %% [markdown]
-# # Let's Compute All At Once (Batch GD)
+# %%
+temp = torch.randn(4, 15)
+
+# %%
+zeros = torch.zeros_like(temp)
+
+# %%
+temp[temp > 0] = 3
+
+# %%
+temp
 
 # %%
 # Set the batch size to be equal to the size of the training dataset
@@ -305,7 +187,8 @@ for epoch in range(num_epochs):
     images = images.view(train_size, num_pixels)
     targets = target_to_sigmoid(targets)
 
-    predictions = sigmoid(linear(weights, bias, images.T))
+#     predictions = sigmoid(linear(weights, bias, images.T))
+    predictions = torch.sigmoid(weights.T @ images.T + bias)
     # print(predictions.shape, targets.shape)
 
     loss = targets * torch.log(predictions) + (1 - targets) * torch.log(1 - predictions)
@@ -319,9 +202,6 @@ for epoch in range(num_epochs):
     bias -= learning_rate * bias_derivative
 
     print(f"{epoch+1:>2}/{num_epochs}, Cost={cost:0.1f}, Time={time()-start:0.1f}s")
-
-# %% [markdown]
-# # Is This Better? Need a Metric
 
 # %%
 # Create the validation dataset
@@ -344,8 +224,13 @@ valid_loader2All = torch.utils.data.DataLoader(
     batch_size=valid_size,
 )
 
+
 # %%
-# Add validation metric
+def sigmoid(z):
+    return 1 / (1 + torch.exp(-z))
+
+def linear(w, b, a):
+    return w.T @ a + b
 
 # Neuron parameters
 num_pixels = 28 * 28
@@ -405,28 +290,3 @@ for epoch in range(num_epochs):
     )
 
 # %%
-valid_predictions.shape
-
-# %%
-valid_targets.shape
-
-# %%
-valid_predictions[:10]
-
-# %%
-torch.round(valid_predictions)
-
-# %%
-(torch.round(valid_predictions) - valid_targets).sum()
-
-# %%
-(torch.round(valid_predictions) - valid_targets).sum()/valid_size
-
-# %%
-1 - (torch.round(valid_predictions) - valid_targets).sum()/valid_size
-
-# %%
-x = 1 - (torch.round(valid_predictions) - valid_targets).sum()/valid_size
-
-# %%
-f"Accuracy={x:.2f}"
