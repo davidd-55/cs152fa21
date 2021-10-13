@@ -23,7 +23,21 @@ def initialize_parameters(
             W2 : (n2, n1)
             b2 : (n2)
     """
-    # TODO: initialize and return W1, b1, W2, and b2
+    
+    W1 = torch.randn(n1, n0) * scale
+    b1 = torch.randn(n1) * scale
+    W2 = torch.randn(n2, n1) * scale
+    b2 = torch.randn(n2) * scale
+    
+    return W1, b1, W2, b2
+
+
+def linear(A, W, b):
+    return A @ W.T + b
+
+
+def sigmoid(Z):
+    return 1 / (1 + torch.exp(-Z))
 
 
 def forward_propagation(
@@ -41,7 +55,13 @@ def forward_propagation(
     Returns:
         Tuple[Tensor, Tensor]: outputs for layers 1 (N, n1) and 2 (N, n2)
     """
-    # TODO: compute and return A1 and A2
+    Z1 = linear(A0, W1, b1)
+    A1 = sigmoid(Z1)
+
+    Z2 = linear(A1, W2, b2)
+    A2 = sigmoid(Z2)
+    
+    return A1, A2
 
 
 def sigmoid_to_binary(A2: Tensor) -> Tensor:
@@ -53,7 +73,8 @@ def sigmoid_to_binary(A2: Tensor) -> Tensor:
     Returns:
         Tensor: binary predictions of a 2-layer neural network
     """
-    # TODO: convert matrix to rounded zeros and ones
+
+    return A2.apply_(lambda x: 1 if x >= .5 else 0).int()
 
 
 def backward_propagation(
@@ -114,7 +135,8 @@ def compute_loss(A2: Tensor, Y: Tensor) -> Tensor:
     Returns:
         Tensor: computed loss
     """
-    # TODO: implement this function
+    
+    return -(Y * torch.log(A2) + (1 - Y) * torch.log(1 - A2))
 
 
 def train_2layer(
@@ -147,3 +169,12 @@ def train_2layer(
     #   3. compute gradients with backward propagation
     #   4. update parameters
     # 3. return final parameters
+
+
+if __name__ == "__main__":
+    T1 = torch.tensor([[.6, .4], [.2, .99]])
+    print(T1)
+    T1_to_binary = sigmoid_to_binary(T1)
+    print(T1_to_binary)
+
+    #print(initialize_parameters(2,2,2,1))
