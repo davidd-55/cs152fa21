@@ -4,6 +4,12 @@ import torch
 from torch import Tensor
 from typing import Tuple
 
+'''
+remaining questions: 
+    - how to test?
+    - when should sigmoid_to_binary be applied?
+    - how can we determine general accuracy between YHat and Y?
+'''
 
 def initialize_parameters(
     n0: int, n1: int, n2: int, scale: float
@@ -91,8 +97,33 @@ def backward_propagation(
 
     Returns:
         Tuple[Tensor, Tensor, Tensor, Tensor]: gradients for weights and biases
+        [W1, b1, dW2, db2]
     """
-    # TODO: compute and return gradients
+
+    # store N (number of inputs); A0 is N x n0 matrix
+    N = A0.shape[0]
+    
+    # Compute loss as the mean-square-error
+    # bce_loss = compute_loss(A2, Y)
+
+    # review lecture 11 notes!
+    # Compute gradients for W^[2] and b^[2]
+    # dL_dY = A2 - Y
+    dL_dY = (Y / A2 - (1 - Y) / (1 - A2)) / 2
+    dY_dZ2 = A2 * (1 - A2)
+
+    dZ2 = dL_dY * dY_dZ2
+
+    dW2 = (1 / N) * dZ2.T @ A1
+    db2 = dZ2.mean(dim=0)
+
+    # Compute gradients for W^[1] and b^[1]
+    dZ1 = dZ2 @ W2 * ((A1 * (1 - A1)))
+
+    dW1 = (1 / N) * dZ1.T @ A0
+    db1 = dZ1.mean(dim=0)
+
+    return dW1, db1, dW2, db2
 
 
 def update_parameters(
@@ -122,7 +153,13 @@ def update_parameters(
     Returns:
         Tuple[Tensor, Tensor, Tensor, Tensor]: updated network parameters
     """
-    # TODO: Update and return parameters
+
+    W1 -= lr * dW1
+    b1 -= lr * db1
+    W2 -= lr * dW2
+    b2 -= lr * db2
+
+    return W1, b1, W2, b2
 
 
 def compute_loss(A2: Tensor, Y: Tensor) -> Tensor:
@@ -135,8 +172,10 @@ def compute_loss(A2: Tensor, Y: Tensor) -> Tensor:
     Returns:
         Tensor: computed loss
     """
+
+    loss = torch.mean(-(Y * torch.log(A2) + (1 - Y) * torch.log(1 - A2)))
     
-    return -(Y * torch.log(A2) + (1 - Y) * torch.log(1 - A2))
+    return loss
 
 
 def train_2layer(
@@ -170,11 +209,31 @@ def train_2layer(
     #   4. update parameters
     # 3. return final parameters
 
+    nx = X.shape[1]
+    ny = Y.shape[1]
 
-if __name__ == "__main__":
-    T1 = torch.tensor([[.6, .4], [.2, .99]])
-    print(T1)
-    T1_to_binary = sigmoid_to_binary(T1)
-    print(T1_to_binary)
+    W1, b1, W2, b2 = initialize_parameters(nx, num_hidden, ny, learning_rate)
 
-    #print(initialize_parameters(2,2,2,1))
+    for epoch in range(num_epochs):
+        
+        #when should we convert using sigmoid_to_binary?
+        #YHat_binary = sigmoid_to_binary(A2)
+        A0 = X
+        A1, A2 = forward_propagation(X, W1, b1, W2, b2)
+
+        loss = compute_loss(A2, Y)
+
+        dW1, db1, dW2, db2 = backward_propagation(A0, A1, A2, Y, W2)
+
+        W1, b1, W2, b2 = update_parameters(
+            W1, b1, W2, b2,
+            dW1, db1, dW2, db2,
+            learning_rate)
+
+        if (epoch + 1) % 10 == 0:
+            # how to calc accuracy?
+            e = f"{epoch + 1:>4}/{num_epochs}"
+            c = f"{loss:0.2f}"
+            print(f"{e}: Loss={c}")
+
+    return W1, b1, W2, b2
