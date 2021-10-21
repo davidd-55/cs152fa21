@@ -4,13 +4,6 @@ import torch
 from torch import Tensor
 from typing import Tuple
 
-'''
-remaining questions: 
-    - how to test?
-    - when should sigmoid_to_binary be applied?
-    - how can we determine general accuracy between YHat and Y?
-'''
-
 def initialize_parameters(
     n0: int, n1: int, n2: int, scale: float
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
@@ -199,20 +192,11 @@ def train_2layer(
     Returns:
         Tuple[Tensor, Tensor, Tensor, Tensor]: learned parameters of a 2-layer neural network
     """
-    # TODO: implement this function
-    # Steps:
-    # 1. create and initialize parameters
-    # 2. loop
-    #   1. compute outputs with forward propagation
-    #   2. compute loss (for analysis)
-    #   3. compute gradients with backward propagation
-    #   4. update parameters
-    # 3. return final parameters
 
     nx = X.shape[1]
     ny = Y.shape[1]
 
-    W1, b1, W2, b2 = initialize_parameters(nx, num_hidden, ny, learning_rate)
+    W1, b1, W2, b2 = initialize_parameters(nx, num_hidden, ny, param_scale)
 
     for epoch in range(num_epochs):
         
@@ -229,11 +213,5 @@ def train_2layer(
             W1, b1, W2, b2,
             dW1, db1, dW2, db2,
             learning_rate)
-
-        if (epoch + 1) % 10 == 0:
-            # how to calc accuracy?
-            e = f"{epoch + 1:>4}/{num_epochs}"
-            c = f"{loss:0.2f}"
-            print(f"{e}: Loss={c}")
 
     return W1, b1, W2, b2
