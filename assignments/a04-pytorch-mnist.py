@@ -125,7 +125,7 @@ def main():
     # Neural network model
     nx = batch_X.shape[1:].numel()
     ny = int(torch.unique(batch_Y).shape[0])
-    layer_sizes = (nx, 150, 50, ny)
+    layer_sizes = (nx, 100, 75, 50, ny)
 
     model = NeuralNetwork(layer_sizes).to(device)
 
