@@ -125,13 +125,13 @@ def main():
     # Neural network model
     nx = batch_X.shape[1:].numel()
     ny = int(torch.unique(batch_Y).shape[0])
-    layer_sizes = (nx, 10, 5, ny)
+    layer_sizes = (nx, 150, 50, ny)
 
     model = NeuralNetwork(layer_sizes).to(device)
 
     # CrossEntropyLoss criterion and Optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate)
 
     train(
         model, criterion, optimizer, train_loader, valid_loader, device, args.num_epochs
