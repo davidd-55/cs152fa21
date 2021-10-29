@@ -6,6 +6,24 @@ from fastprogress.fastprogress import master_bar, progress_bar
 import torch
 import torch.nn as nn
 
+class NeuralNetwork(nn.Module):
+    def __init__(self, layer_sizes):
+        super(NeuralNetwork, self).__init__()
+
+        first_layer = nn.Flatten()
+        middle_layers = [
+            nn.Sequential(nn.Linear(nlminus1, nl), nn.ReLU())
+            for nl, nlminus1 in zip(layer_sizes[1:-1], layer_sizes)
+        ]
+        last_layer = nn.Linear(layer_sizes[-2], layer_sizes[-1])
+
+        all_layers = [first_layer] + middle_layers + [last_layer]
+
+        self.layers = nn.Sequential(*all_layers)
+
+    def forward(self, X):
+        return self.layers(X)
+
 
 def train_one_epoch(dataloader, model, criterion, optimizer, device, mb):
 
@@ -109,7 +127,7 @@ def main():
     ny = int(torch.unique(batch_Y).shape[0])
     layer_sizes = (nx, 10, 5, ny)
 
-    model = nn.NeuralNetwork(layer_sizes).to(device)
+    model = NeuralNetwork(layer_sizes).to(device)
 
     # CrossEntropyLoss criterion and Optimizer
     criterion = nn.CrossEntropyLoss()
