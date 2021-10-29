@@ -24,7 +24,7 @@ def initialize_parameters(
     """
     
     W1 = torch.randn(n1, n0) * scale
-    b1 = torch.randn(n1) * scale
+    b1 = torch.randn(n1) * scale # initialize with zeros!
     W2 = torch.randn(n2, n1) * scale
     b2 = torch.randn(n2) * scale
     
