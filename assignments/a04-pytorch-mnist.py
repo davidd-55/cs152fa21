@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from utils import get_mnist_data_loaders, DataLoaderProgress
 from fastprogress.fastprogress import master_bar, progress_bar
 import torch
+import torch.nn as nn
 
 
 def train_one_epoch(dataloader, model, criterion, optimizer, device, mb):
@@ -11,19 +12,25 @@ def train_one_epoch(dataloader, model, criterion, optimizer, device, mb):
     # Put the model into training mode
     model.train()
 
+    size = len(dataloader.dataset)
+
     # Loop over the data using the progress_bar utility
-    for _, (X, Y) in progress_bar(DataLoaderProgress(dataloader), parent=mb):
+    for batch, (X, Y) in progress_bar(DataLoaderProgress(dataloader), parent=mb):
         X, Y = X.to(device), Y.to(device)
 
         # Compute model output and then loss
         output = model(X)
         loss = criterion(output, Y)
 
-        # TODO:
-        # - zero-out gradients
-        # - compute new gradients
-        # - update paramters
-        ...
+        # Backpropogation
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # Print batch info
+        if batch % 100 == 0:
+            loss, current = loss.item(), batch * len(X)
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
 
 def validate(dataloader, model, criterion, device, epoch, num_epochs, mb):
@@ -45,10 +52,12 @@ def validate(dataloader, model, criterion, device, epoch, num_epochs, mb):
             # Compute the model output
             output = model(X)
 
-            # TODO:
-            # - compute loss
-            # - compute the number of correctly classified examples
-            ...
+            # Compute loss
+            loss += criterion(output, Y).item()
+
+            # Compute the number of correctly classified examples
+            num_correct += (output.argmax(1) == Y).type(torch.float).sum().item()
+            
 
         loss /= num_batches
         accuracy = num_correct / N
@@ -88,20 +97,23 @@ def main():
 
     # Use GPU if requested and available
     device = "cuda" if args.gpu and torch.cuda.is_available() else "cpu"
+    print(f"'{device}' selected as hardware device.")
 
     # Get data loaders
     train_loader, valid_loader = get_mnist_data_loaders(args.mnist, args.batch_size, 0)
 
-    # TODO: create a new model
-    # Your model can be as complex or simple as you'd like. It must work
-    # with the other parts of this script.
-    model = ...
+    batch_X, batch_Y = next(iter(train_loader))
 
-    # TODO:
-    # - create a CrossEntropyLoss criterion
-    # - create an optimizer of your choice
-    criterion = ...
-    optimizer = ...
+    # Neural network model
+    nx = batch_X.shape[1:].numel()
+    ny = int(torch.unique(batch_Y).shape[0])
+    layer_sizes = (nx, 10, 5, ny)
+
+    model = nn.NeuralNetwork(layer_sizes).to(device)
+
+    # CrossEntropyLoss criterion and Optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     train(
         model, criterion, optimizer, train_loader, valid_loader, device, args.num_epochs
