@@ -8,9 +8,14 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, SubsetRandomSampler, TensorDataset
 
-from torchvision.datasets import MNIST
+# +
+from torchvision.datasets import MNIST, CIFAR10
 from torchvision.transforms import Compose, ConvertImageDtype, Normalize, ToTensor
 
+from fastprogress.fastprogress import progress_bar
+
+
+# -
 
 def mnist_target_to_binary(target, B):
     """Convert target digits into a zeros (class A) and ones (class B)."""
@@ -122,13 +127,32 @@ def get_mnist_data_loaders(path, batch_size, valid_batch_size):
     return train_loader, valid_loader
 
 
+def get_cifar10_data_loaders(path, batch_size, valid_batch_size):
+
+    std = (0.4941, 0.4870, 0.5232)
+    mean = (-0.0172, -0.0357, -0.1069)
+    image_xforms = Compose([ToTensor(), Normalize(mean, std)])
+    
+    train_dataset = CIFAR10(root=path, train=True, download=True, transform=image_xforms)
+    
+    tbs = len(train_dataset) if batch_size == 0 else batch_size
+    train_loader = DataLoader(train_dataset, batch_size=tbs, shuffle=True)
+
+    valid_dataset = CIFAR10(root=path, train=False, download=True, transform=image_xforms)
+    
+    vbs = len(valid_dataset) if valid_batch_size == 0 else valid_batch_size
+    valid_loader = DataLoader(valid_dataset, batch_size=vbs, shuffle=True)
+
+    return train_loader, valid_loader
+
+
 class NN_FC_CrossEntropy(nn.Module):
-    def __init__(self, layer_sizes):
+    def __init__(self, layer_sizes, activation=nn.ReLU):
         super(NN_FC_CrossEntropy, self).__init__()
 
         first_layer = nn.Flatten()
         middle_layers = [
-            nn.Sequential(nn.Linear(nlminus1, nl), nn.ReLU())
+            nn.Sequential(nn.Linear(nlminus1, nl), activation())
             for nl, nlminus1 in zip(layer_sizes[1:-1], layer_sizes)
         ]
         last_layer = nn.Linear(layer_sizes[-2], layer_sizes[-1])
@@ -139,6 +163,55 @@ class NN_FC_CrossEntropy(nn.Module):
 
     def forward(self, X):
         return self.layers(X)
+
+
+def compute_validation_accuracy_multi(dataloader, model, criterion, device, mb, epoch):
+
+    model.eval()
+
+    N = len(dataloader.dataset)
+    num_batches = len(dataloader)
+
+    valid_loss, num_correct = 0, 0
+
+    with torch.no_grad():
+
+        for X, Y in dataloader:
+
+            X, Y = X.to(device), Y.to(device)
+            output = model(X)
+
+            valid_loss += criterion(output, Y).item()
+            num_correct += (output.argmax(1) == Y).type(torch.float).sum().item()
+
+        valid_loss /= num_batches
+        valid_accuracy = num_correct / N
+
+    mb.write(
+        f"{epoch:>3}: validation accuracy={(100*valid_accuracy):5.2f}% and loss={valid_loss:.3f}"
+    )
+    return valid_loss, valid_accuracy
+
+
+def train_one_epoch(dataloader, model, criterion, optimizer, device, mb):
+
+    model.train()
+
+    num_batches = len(dataloader)
+    dataiter = iter(dataloader)
+
+    for batch in progress_bar(range(num_batches), parent=mb):
+
+        X, Y = next(dataiter)
+        X, Y = X.to(device), Y.to(device)
+
+        output = model(X)
+
+        loss = criterion(output, Y)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
 
 def format_duration_with_prefix(duration, sig=2):
