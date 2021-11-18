@@ -137,8 +137,8 @@ def train(model, criterion, optimizer, train_loader, valid_loader, device, num_e
 
 def main():
 
-    aparser = ArgumentParser("Train a neural network on the CIFAR10 dataset.")
-    aparser.add_argument("cifar10", type=str, help="Path to store/find the CIFAR10 dataset")
+    aparser = ArgumentParser("Train a neural network on the MNIST dataset.")
+    aparser.add_argument("mnist", type=str, help="Path to store/find the MNIST dataset")
     aparser.add_argument("--num_epochs", type=int, default=10)
     aparser.add_argument("--batch_size", type=int, default=128)
     aparser.add_argument("--learning_rate", type=float, default=0.1)
@@ -172,7 +172,7 @@ def main():
 
     #model = alexnet()
     
-    model.fc = nn.Linear(in_features=512, out_features=10, bias=True)
+    model.fc = nn.Linear(in_features=784, out_features=10, bias=True)
     model.to(device)
 
     # CrossEntropyLoss criterion and Optimizer
