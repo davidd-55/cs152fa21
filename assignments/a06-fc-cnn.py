@@ -184,14 +184,14 @@ def main():
     layer_sizes = (nx, 100, 75, 50, ny)
 
 
-    model = NN_FC_CrossEntropy(layer_sizes).to(device)
+    # model = NN_FC_CrossEntropy(layer_sizes).to(device)
 
-    #model = resnet18()
+    model = resnet18()
 
     #model = alexnet()
     
-    #model.fc = nn.Linear(in_features=784, out_features=10, bias=True)
-    #model.to(device)
+    model.fc = nn.Linear(in_features=nx, out_features=ny, bias=True)
+    model.to(device)
 
     # CrossEntropyLoss criterion and Optimizer
     criterion = nn.CrossEntropyLoss()
