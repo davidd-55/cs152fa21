@@ -7,6 +7,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from torchvision.datasets import CIFAR10
+from torchvision.models import resnet18, alexnet
 from torchvision.transforms import Compose, ConvertImageDtype, Normalize, ToTensor
 
 from fastprogress.fastprogress import master_bar, progress_bar
@@ -164,11 +165,19 @@ def main():
     ny = int(torch.unique(batch_Y).shape[0])
     layer_sizes = (nx, 100, 75, 50, ny)
 
-    model = NN_FC_CrossEntropy(layer_sizes).to(device)
+
+    #model = NN_FC_CrossEntropy(layer_sizes).to(device)
+
+    model = resnet18()
+
+    #model = alexnet()
+    
+    model.fc = nn.Linear(in_features=512, out_features=10, bias=True)
+    model.to(device)
 
     # CrossEntropyLoss criterion and Optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     train(
         model, criterion, optimizer, train_loader, valid_loader, device, args.num_epochs
