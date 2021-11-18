@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from torchvision.datasets import CIFAR10
+from torchvision.datasets import CIFAR10, MNIST
 from torchvision.models import resnet18, alexnet
 from torchvision.transforms import Compose, ConvertImageDtype, Normalize, ToTensor
 
@@ -43,6 +43,24 @@ class NN_FC_CrossEntropy(nn.Module):
     def forward(self, X):
         return self.layers(X)
 
+def get_mnist_data_loaders(path, batch_size, valid_batch_size):
+
+    # MNIST specific transforms
+    image_xforms = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
+
+    # Training data loader
+    train_dataset = MNIST(root=path, train=True, download=True, transform=image_xforms)
+
+    tbs = len(train_dataset) if batch_size == 0 else batch_size
+    train_loader = DataLoader(train_dataset, batch_size=tbs, shuffle=True)
+
+    # Validation data loader
+    valid_dataset = MNIST(root=path, train=False, download=True, transform=image_xforms)
+
+    vbs = len(valid_dataset) if valid_batch_size == 0 else valid_batch_size
+    valid_loader = DataLoader(valid_dataset, batch_size=vbs, shuffle=True)
+
+    return train_loader, valid_loader
 
 def get_cifar10_data_loaders(path, batch_size, valid_batch_size):
 
@@ -156,7 +174,7 @@ def main():
     print(f"'{device}' selected as hardware device.")
 
     # Get data loaders
-    train_loader, valid_loader = get_cifar10_data_loaders(args.cifar10, args.batch_size, 0)
+    train_loader, valid_loader = get_mnist_data_loaders(args.mnist, args.batch_size, 0)
 
     batch_X, batch_Y = next(iter(train_loader))
 
